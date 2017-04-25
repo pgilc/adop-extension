@@ -1,0 +1,34 @@
+- hosts: localhost
+  connection: local
+  tasks:
+    - name: Launch cloudformation for Chef extension
+      cloudformation:
+        stack_name: "ansible-cloudformation"
+        state: "present"
+        region: "{{ lookup('env','AWS_REGION') }}"
+        disable_rollback: true
+        template: "service.template"
+        template_parameters:
+          KeyName: "{{ lookup('env','AWS_KEYPAIR') }}"
+          InstanceType: "t2.large"
+          EnvironmentName: "ChefServer"
+          EnvironmentSubnet: "{{ lookup('env','AWS_SUBNET_ID') }}"
+          VPCId: "{{ lookup('env','AWS_VPC_ID') }}"
+          InboundCIDR: "0.0.0.0/0"
+        tags:
+          Stack: "chef-stack"
+
+      # Register the cloudformation output facts into a variable
+      register: cf_out
+
+    # Print the output to stdout
+    - debug: var=cf_out
+
+    - name: Copy all the output facts into a file
+      copy: content={{ cf_out }} dest=./cf_out.json
+
+    # Get the important data and create a file for it.
+    # In this example, we want to save the ip address of the provisioned IP so we can parse it to a variable
+    # for modifying the configuration file that will be copied over the ADOP nginx proxy container.
+    - name: Copy the ip address attribute of the output facts into a file
+      copy: content={{ cf_out["stack_outputs"]["EC2InstancePrivateIp"] }} dest=./instance_ip.txt

@@ -1,0 +1,220 @@
+{
+    "Description": "EC2 platform extension template for ADOP/B",
+    "Mappings": {
+        "RegionMap": {
+            "eu-west-1": {
+                "AMI": "ami-7abd0209"
+            },
+            "us-west-1": {
+                "AMI": "ami-af4333cf"
+            },
+            "us-west-2": {
+                "AMI": "ami-d2c924b2"
+            },
+            "eu-central-1": {
+                "AMI": "ami-9bf712f4"
+            },
+            "us-east-1": {
+                "AMI": "ami-6d1c2007"
+            },
+            "ap-southeast-2": {
+                "AMI": "ami-fedafc9d"
+            },
+            "ap-south-1": {
+                "AMI": "ami-95cda6fa"
+            }
+        }
+    },
+    "Outputs": {
+        "EC2InstancePrivateIp": {
+            "Description": "EC2Instance Private IP",
+            "Value": {
+                "Fn::GetAtt": [
+                    "EC2Instance",
+                    "PrivateIp"
+                ]
+            }
+        },
+        "EC2InstanceID" : {
+            "Description": "EC2Instance ID",
+            "Value" : { "Ref" : "EC2Instance" }
+        }
+    },
+    "Parameters": {
+        "EnvironmentName": {
+            "Description": "The name of the EC2 instance being created",
+            "Type": "String"
+        },
+        "EnvironmentSubnet": {
+            "Description": "The ID of the subnet to create the instance in",
+            "Type": "AWS::EC2::Subnet::Id"
+        },
+        "InstanceType": {
+            "Default": "t2.large",
+            "Description": "EC2 instance type",
+            "Type": "String"
+        },
+        "KeyName": {
+            "Description": "Key-pair name to use.",
+            "Type": "AWS::EC2::KeyPair::KeyName"
+        },
+        "VPCId": {
+            "Description": "VPC ID where the instance will be created",
+            "Type": "AWS::EC2::VPC::Id"
+        },
+        "InboundCIDR": {
+            "Default": "10.0.0.0/24",
+            "Description": "Inbound Security Group CIDR Block",
+            "Type": "String"
+        }
+    },
+    "Resources": {
+        "DefaultSecurityGroup": {
+            "Properties": {
+                "GroupDescription": "Enabling access to all IPs and below listed ports",
+                "SecurityGroupEgress": [
+                    {
+                        "CidrIp": "0.0.0.0/0",
+                        "FromPort": "0",
+                        "IpProtocol": "tcp",
+                        "ToPort": "65535"
+                    },
+                    {
+                        "CidrIp": "0.0.0.0/0",
+                        "FromPort": "0",
+                        "IpProtocol": "udp",
+                        "ToPort": "65535"
+                    }
+                ],
+                "SecurityGroupIngress": [
+                    {
+                        "CidrIp": {
+                            "Ref": "InboundCIDR"
+                        },
+                        "FromPort": "22",
+                        "IpProtocol": "tcp",
+                        "ToPort": "22"
+                    },
+                    {
+                        "CidrIp": {
+                            "Ref": "InboundCIDR"
+                        },
+                        "FromPort": "80",
+                        "IpProtocol": "tcp",
+                        "ToPort": "80"
+                    },
+                    {
+                        "CidrIp":  {
+                            "Ref": "InboundCIDR"
+                        },
+                        "FromPort": "443",
+                        "IpProtocol": "tcp",
+                        "ToPort": "443"
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "VPCId"
+                }
+            },
+            "Type": "AWS::EC2::SecurityGroup"
+        },
+        "EC2Instance": {
+            "Properties": {
+                "BlockDeviceMappings": [
+                    {
+                        "DeviceName": "/dev/sda1",
+                        "Ebs": {
+                            "DeleteOnTermination": "true",
+                            "VolumeSize": 30
+                        }
+                    }
+                ],
+                "ImageId": {
+                    "Fn::FindInMap": [
+                        "RegionMap",
+                        {
+                            "Ref": "AWS::Region"
+                        },
+                        "AMI"
+                    ]
+                },
+                "InstanceType": {
+                    "Ref": "InstanceType"
+                },
+                "KeyName": {
+                    "Ref": "KeyName"
+                },
+                "NetworkInterfaces": [
+                    {
+                        "AssociatePublicIpAddress": "true",
+                        "DeleteOnTermination": "true",
+                        "DeviceIndex": "0",
+                        "GroupSet": [
+                            {
+                                "Ref": "DefaultSecurityGroup"
+                            }
+                        ],
+                        "SubnetId": {
+                            "Ref": "EnvironmentSubnet"
+                        }
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Ref": "EnvironmentName"
+                        }
+                    },
+                    {
+                        "Key": "Node",
+                        "Value": "Chef-server"
+                    },
+                    {
+                        "Key": "createdFor",
+                        "Value": {
+                            "Ref": "EnvironmentName"
+                        }
+                    }
+                ],
+                "UserData": {
+                "Fn::Base64": {
+                "Fn::Join": [
+                  "",
+                  [
+                "#!/bin/bash\n",
+                "export IP=$(hostname --ip-address)\n",
+                "until [[ $(rpm -qa docker | wc -l) -gt 0 ]]; do yum -y install docker; echo \"Waiting until docker is installed..\"; sleep 5; done\n",
+                "sed -i \"s#OPTIONS=.*#OPTIONS='-H tcp://0.0.0.0:2377 -H unix:///var/run/docker.sock --default-ulimit nofile=1024:4096'#\" /etc/sysconfig/docker\n",
+                "yum -y install docker-storage-setup.noarch\n",
+                "cat <<EOF > /etc/sysconfig/docker-storage-setup\n",
+                "DEVS=/dev/xvdf\n",
+                "VG=docker-vg\n",
+                "EOF\n",
+                "rm -fr /var/lib/docker\n",
+                "docker-storage-setup\n",
+                "service docker start\n",
+                "chkconfig docker on\n",
+                "curl -L https://github.com/docker/compose/releases/download/1.7.1/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose\n",
+                "chmod +x /usr/local/bin/docker-compose && ln -sv /usr/local/bin/docker-compose /usr/bin/docker-compose\n",
+                "yum -y install git\n",
+                  ]
+                ]
+                }
+                }
+            },
+            "Type": "AWS::EC2::Instance"
+        },
+        "ControllerHandle" : {
+            "Type" : "AWS::CloudFormation::WaitConditionHandle"
+            },
+        "ControllerCondition" : {
+            "Type" : "AWS::CloudFormation::WaitCondition",
+            "DependsOn" : "EC2Instance",
+            "Properties" : {
+                "Handle" : { "Ref" : "ControllerHandle" },
+                "Timeout" : "1800"
+            }
+        }
+    }
+}
