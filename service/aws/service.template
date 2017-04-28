@@ -198,6 +198,13 @@
                 "curl -L https://github.com/docker/compose/releases/download/1.7.1/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose\n",
                 "chmod +x /usr/local/bin/docker-compose && ln -sv /usr/local/bin/docker-compose /usr/bin/docker-compose\n",
                 "yum -y install git\n",
+                "mkdir /adop && cd /adop\n",
+                "git clone ssh://git@innersource.accenture.com/fmw/fmw-web-db.git \n",
+                "chmod -R 700 /adop/fmw-web-db\n",
+                "cd /adop/fmw-web-db\n",
+				"docker-compose -f compose-dockerway/docker-compose.yml up -d \n",
+                "sleep 10\n",
+                "echo \"\n",
 				"cfn-signal -e $? -r \"Stack setup complete\" '", { "Ref" : "ControllerHandle" }, "'\n"
                   ]
                 ]
