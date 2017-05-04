@@ -184,6 +184,13 @@
                   [
                 "#!/bin/bash\n",
                 "export IP=$(hostname --ip-address)\n",
+				"export LOCAL_IPv4=$(curl http://instance-data/latest/meta-data/local-ipv4)\n",
+                "yum -y install wget make \n",
+                "yum -y install epel-release\n",
+                "yum -y install python-pip\n",
+                "pip install pystache\n",
+                "pip install argparse\n",
+                "pip install python-daemon\n",
 				"cd /opt\n",
                 "curl -O https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
                 "tar -xvpf aws-cfn-bootstrap-latest.tar.gz\n",
@@ -211,6 +218,7 @@
 				"docker-compose -f compose-dockerway/docker-compose.yml up -d \n",
                 "sleep 10\n",
                 "echo \"\n",
+				"until [[ $(curl -I -s http://$LOCAL_IPv4|head -n 1|cut -d$' ' -f2) == 301 ]]; do echo \"Chef still not available, sleeping for 5s\"; sleep 5; done\n",
 				"cfn-signal -e $? -r \"Stack setup complete\" '", { "Ref" : "ControllerHandle" }, "'\n"
                   ]
                 ]
