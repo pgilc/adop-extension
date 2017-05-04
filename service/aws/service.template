@@ -184,6 +184,12 @@
                   [
                 "#!/bin/bash\n",
                 "export IP=$(hostname --ip-address)\n",
+				"cd /opt\n",
+                "curl -O https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
+                "tar -xvpf aws-cfn-bootstrap-latest.tar.gz\n",
+                "cd aws-cfn-bootstrap-*\n",
+                "python setup.py build\n",
+                "python setup.py install\n",
                 "until [[ $(rpm -qa docker | wc -l) -gt 0 ]]; do yum -y install docker; echo \"Waiting until docker is installed..\"; sleep 5; done\n",
                 "sed -i \"s#OPTIONS=.*#OPTIONS='-H tcp://0.0.0.0:2377 -H unix:///var/run/docker.sock --default-ulimit nofile=1024:4096'#\" /etc/sysconfig/docker\n",
                 "yum -y install docker-storage-setup.noarch\n",
@@ -199,6 +205,12 @@
                 "chmod +x /usr/local/bin/docker-compose && ln -sv /usr/local/bin/docker-compose /usr/bin/docker-compose\n",
                 "yum -y install git\n",
                 "mkdir /adop && cd /adop\n",
+                "git clone ssh://jenkins@innersource.accenture.com/fmw/fmw-web-db.git \n",
+                "chmod -R 700 /adop/fmw-web-db\n",
+                "cd /adop/fmw-web-db\n",
+				"docker-compose -f compose-dockerway/docker-compose.yml up -d \n",
+                "sleep 10\n",
+                "echo \"\n",
 				"cfn-signal -e $? -r \"Stack setup complete\" '", { "Ref" : "ControllerHandle" }, "'\n"
                   ]
                 ]
