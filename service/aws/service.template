@@ -204,12 +204,7 @@
                 "chmod +x /usr/local/bin/docker-compose && ln -sv /usr/local/bin/docker-compose /usr/bin/docker-compose\n",
                 "yum -y install git\n",
                 "mkdir /adop && cd /adop\n",
-				"\"",
-                {
-                  "Ref": "ControllerHandle"
-                },
-                "\"\n",
-                "\n"
+                "{ "Ref" : "ControllerHandle" }",
                   ]
                 ]
                 }
