@@ -183,20 +183,7 @@
                   "",
                   [
                 "#!/bin/bash\n",
-                "export IP=$(hostname --ip-address)\n",
-                "until [[ $(rpm -qa docker | wc -l) -gt 0 ]]; do yum -y install docker; echo \"Waiting until docker is installed..\"; sleep 5; done\n",
-                "yum -y install docker-storage-setup.noarch\n",
-                "cat <<EOF > /etc/sysconfig/docker-storage-setup\n",
-                "DEVS=/dev/xvdf\n",
-                "VG=docker-vg\n",
-                "EOF\n",
-                "rm -fr /var/lib/docker\n",
-                "docker-storage-setup\n",
-                "service docker start\n",
-                "chkconfig docker on\n",
-                "curl -L https://github.com/docker/compose/releases/download/1.7.1/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose\n",
-                "chmod +x /usr/local/bin/docker-compose && ln -sv /usr/local/bin/docker-compose /usr/bin/docker-compose\n",
-                "yum -y install git\n",
+                "mkdir test \n",
 				"\"",
                 {
                   "Ref": "ControllerHandle"
