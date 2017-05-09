@@ -184,12 +184,7 @@
                   [
                 "#!/bin/bash\n",
                 "mkdir test \n",
-				"\"",
-                {
-                  "Ref": "ControllerHandle"
-                },
-                "\"\n",
-                "\n"
+                "\"", { "Ref" : "ControllerHandle" }, "\"\n"
                   ]
                 ]
                 }
