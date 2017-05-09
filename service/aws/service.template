@@ -182,7 +182,7 @@
                 "Fn::Join": [
                   "",
                   [
-                "#!/bin/bash\n",
+                "#!/bin/bash -xe\n",
                 "mkdir test \n",
                 "\"", { "Ref" : "ControllerHandle" }, "\"\n"
                   ]
